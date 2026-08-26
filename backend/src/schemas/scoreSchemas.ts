@@ -35,8 +35,24 @@ export const updateScoreSchema = z.object({
   }),
 });
 
+// Schema for GET /score/confidence/filter
+export const filterByConfidenceSchema = z.object({
+  query: z.object({
+    minConfidence: z
+      .string()
+      .optional()
+      .transform((v) => (v ? parseFloat(v) : 0.6))
+      .refine((v) => v >= 0 && v <= 1, 'Confidence must be between 0 and 1'),
+    lenderIds: z
+      .string()
+      .optional()
+      .transform((v) => (v ? v.split(',') : undefined)),
+  }),
+});
+
 // TypeScript types
 export type GetScoreInput = z.infer<typeof getScoreSchema>;
 export type GetScoreHistoryInput = z.infer<typeof getScoreHistorySchema>;
 export type GetRemittanceNftInput = z.infer<typeof getRemittanceNftSchema>;
 export type UpdateScoreInput = z.infer<typeof updateScoreSchema>;
+export type FilterByConfidenceInput = z.infer<typeof filterByConfidenceSchema>;
