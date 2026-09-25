@@ -238,3 +238,6 @@ This project is licensed under the ISC License. See the `LICENSE` file for detai
 
 <!-- handsoff-issue-332 -->
 - #332: frontend: establish accessible financial data primitives
+
+<!-- handsoff-issue-335 -->
+- #335: frontend: harden client-side PII rendering and copy behavior
