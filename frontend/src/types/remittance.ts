@@ -115,3 +115,153 @@ export function toggleSensitiveField(
 ): RemittanceDisclosureState {
   return { ...disclosure, [field]: disclosure[field] !== true };
 }
+
+/**
+ * Multi-pool deposit workflow types.
+ *
+ * A guarded deposit fans a single user action out across one or more pools.
+ * The payload shape is additive and backward compatible: existing single-pool
+ * callers keep working, while multi-pool callers supply an explicit list of
+ * allocations. All amounts are integer strings in the smallest unit of the
+ * pool's currency (authoritative, never derived from display formatting).
+ */
+
+/**
+ * A single pool allocation within a multi-pool deposit. `amount` is an integer
+ * string in the smallest unit of `currency`.
+ */
+export interface DepositPoolAllocation {
+  poolId: string;
+  amount: string;
+  currency: string;
+}
+
+/**
+ * Lifecycle of a guarded multi-pool deposit. `partial` means at least one pool
+ * succeeded and at least one failed; the workflow must surface this explicitly
+ * rather than reporting a blanket success or failure.
+ */
+export type DepositWorkflowStatus =
+  | 'idle'
+  | 'validating'
+  | 'submitting'
+  | 'partial'
+  | 'succeeded'
+  | 'failed';
+
+/**
+ * Per-pool outcome, used for retry and rollback decisions. `retryable` marks
+ * transient dependency failures that may be safely retried; authorization and
+ * validation failures are never retryable.
+ */
+export interface DepositPoolResult {
+  poolId: string;
+  status: 'pending' | 'succeeded' | 'failed';
+  /** Structured, machine-readable error code (never a raw message). */
+  errorCode?: string;
+  retryable?: boolean;
+}
+
+/**
+ * Bounded limits for a multi-pool deposit. Prevents unbounded fan-out and
+ * keeps resource usage predictable.
+ */
+export const DEPOSIT_MAX_POOLS = 10;
+exexport const DEPOSIT_MAX_RETRIES = 3;
+
+/**
+ * Structured error codes for the deposit workflow. Kept as a closed union so
+ * callers can branch on them without string matching.
+ */
+export type DepositErrorCode =
+  | 'unauthorized'
+  | 'invalid_amount'
+  | 'invalid_pool'
+  | 'duplicate_pool'
+  | 'too_many_pools'
+  | 'insufficient_balance'
+  | 'dependency_failure'
+  | 'stale_state';
+
+/**
+ * Validate a multi-pool deposit request before any network call is made.
+ * Returns a structured error code on the first violation, or `null` when the
+ * request is valid. Pure and side-effect free so it can be unit tested and
+ * reused by the hook.
+ */
+export function validateDepositAllocations(
+  allocations: readonly DepositPoolAllocation[],
+  options?: { authorized?: boolean },
+): DepositErrorCode | null {
+  if (options?.authorized === false) {
+    return 'unauthorized';
+  }
+  if (allocations.length === 0) {
+    return 'invalid_pool';
+  }
+  if (allocations.length > DEPOSIT_MAX_POOLS) {
+    return 'too_many_pools';
+  }
+  const seen = new Set<string>();
+  for (const allocation of allocations) {
+    if (!allocation.poolId) {
+      return 'invalid_pool';
+    }
+    if (seen.has(allocation.poolId)) {
+      return 'duplicate_pool';
+    }
+    seen.add(allocation.poolId);
+    if (!isPositiveIntegerString(allocation.amount)) {
+      return 'invalid_amount';
+    }
+  }
+  return null;
+}
+
+/**
+ * True when `value` is a strictly positive integer string. Rejects floats,
+ * negatives, zero, empty strings, and non-numeric input so financial amounts
+ * are never silently coerced.
+ */
+export function isPositiveIntegerString(value: string): boolean {
+  return /^[0-9]+$/.test(value) && !/^0+$/.test(value);
+}
+
+/**
+ * Decide whether a failed pool result may be retried. Only transient
+ * dependency failures are retryable, and only while under the retry budget.
+ */
+export function canRetryPoolResult(
+  result: DepositPoolResult,
+  attempt: number,
+): boolean {
+  if (result.status !== 'failed' || result.retryable !== true) {
+    return false;
+  }
+  return attempt < DEPOSIT_MAX_RETRIES;
+}
+
+/**
+ * Aggregate per-pool results into an overall workflow status. A mix of
+ * successes and failures is reported as `partial` so the UI never claims a
+ * blanket success when some pools did not settle.
+ */
+export function aggregateDepositStatus(
+  results: readonly DepositPoolResult[],
+): DepositWorkflowStatus {
+  if (results.length === 0) {
+    return 'idle';
+  }
+  const succeeded = results.filter((r) => r.status === 'succeeded').length;
+  const failed = results.filter((r) => r.status === 'failed').length;
+  if (failed === 0 && succeeded === results.length) {
+    return 'succeeded';
+  }
+  if (succeeded > 0 && failed > 0) {
+    return 'partial';
+  }
+  if (failed === results.length) {
+    return 'failed';
+  }
+  return 'submitting';
+}
