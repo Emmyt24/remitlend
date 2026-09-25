@@ -233,3 +233,8 @@ See [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) for a full reference of all envir
 ## 📄 License
 
 This project is licensed under the ISC License. See the `LICENSE` file for details.
+
+## Handsoff notes
+
+<!-- handsoff-issue-332 -->
+- #332: frontend: establish accessible financial data primitives
