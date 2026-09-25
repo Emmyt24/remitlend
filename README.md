@@ -233,3 +233,8 @@ See [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) for a full reference of all envir
 ## 📄 License
 
 This project is licensed under the ISC License. See the `LICENSE` file for details.
+
+## Handsoff notes
+
+<!-- handsoff-issue-339 -->
+- #339: frontend: optimize repayment and deposit flows for one-handed mobile use
