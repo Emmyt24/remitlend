@@ -236,5 +236,5 @@ This project is licensed under the ISC License. See the `LICENSE` file for detai
 
 ## Handsoff notes
 
-<!-- handsoff-issue-339 -->
-- #339: frontend: optimize repayment and deposit flows for one-handed mobile use
+<!-- handsoff-issue-340 -->
+- #340: frontend: add deterministic wallet and RPC test doubles
