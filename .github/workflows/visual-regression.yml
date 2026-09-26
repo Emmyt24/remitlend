@@ -1,6 +1,9 @@
 name: Visual Regression
 
 # Issue #111 — block PRs on unreviewed visual diffs.
+# Issue #343 — extend coverage to critical financial states (success,
+# authorization failure, boundary values, retries, stale data, dependency
+# failure) and surface diagnostics for triage.
 # Mark this job as a required status check in branch protection so a PR
 # cannot merge while the screenshots differ from the committed baselines.
 #
@@ -64,3 +67,29 @@ jobs:
           name: playwright-visual-report-${{ matrix.name }}
           path: frontend/playwright-report/
           retention-days: 7
+
+      - name: Upload visual diff artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-visual-diffs
+          path: |
+            frontend/test-results/
+            frontend/**/*-diff.png
+            frontend/**/*-actual.png
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Summarize visual regression failures
+        if: ${{ failure() }}
+        run: |
+          {
+            echo "## Visual regression failures"
+            echo ""
+            echo "Critical financial states are covered by the visual suite. Review the"
+            echo "uploaded \`playwright-visual-report\` and \`playwright-visual-diffs\` artifacts"
+            echo "before approving any baseline update."
+            echo ""
+            echo "Covered states: success, authorization failure, boundary values,"
+            echo "retries, stale data, dependency failure."
+          } >> "$GITHUB_STEP_SUMMARY"

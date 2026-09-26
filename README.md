@@ -236,8 +236,5 @@ This project is licensed under the ISC License. See the `LICENSE` file for detai
 
 ## Handsoff notes
 
-<!-- handsoff-issue-332 -->
-- #332: frontend: establish accessible financial data primitives
-
-<!-- handsoff-issue-335 -->
-- #335: frontend: harden client-side PII rendering and copy behavior
+<!-- handsoff-issue-340 -->
+- #340: frontend: add deterministic wallet and RPC test doubles
