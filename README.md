@@ -236,5 +236,5 @@ This project is licensed under the ISC License. See the `LICENSE` file for detai
 
 ## Handsoff notes
 
-<!-- handsoff-issue-327 -->
-- #327: frontend: implement withdrawal queue and cooldown experience
+<!-- handsoff-issue-340 -->
+- #340: frontend: add deterministic wallet and RPC test doubles
